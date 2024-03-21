@@ -1,0 +1,75 @@
+---
+env:
+  contexts:
+    - name: "Default Context"
+      urls:
+        - "http://testhtml5.vulnweb.com/"
+      includePaths:
+        - "http://testhtml5.vulnweb.com/.*"
+      excludePaths: []
+      authentication:
+        method: "form"
+        parameters:
+          loginPageUrl: "http://testhtml5.vulnweb.com/#/popular"
+          loginRequestUrl: "http://testhtml5.vulnweb.com/login"
+          loginRequestBody: "username={%username%}&password={%password%}"
+        verification:
+          method: "response"
+          loggedInRegex: "Logout"
+          loggedOutRegex: "Login"
+      sessionManagement:
+        method: "cookie"
+      technology:
+        exclude: []
+      users:
+        - name: "test_user"
+          credentials:
+            username: "admin"
+            password: "admin"
+  parameters:
+    failOnError: true
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  - name: "passiveScan-config"
+    type: "passiveScan-config"
+    parameters:
+      scanOnlyInScope: true
+      maxAlertsPerRule: 5
+      maxBodySizeInBytesToScan: 50000  # Limit the size of responses to scan to speed up the process
+
+  - name: "spider"
+    type: "spider"
+    parameters:
+      context: "Default Context"
+      user: "test_user"
+      maxDepth: 3  # Limit depth to reduce the amount of pages to crawl
+      maxChildren: 10  # Limit number of child nodes to visit per node
+      maxDuration: 10  # Limit the duration of the spider scan
+
+  - name: "activeScan"
+    type: "activeScan"
+    parameters:
+      context: "Default Context"
+      maxRuleDurationInMins: 2  # Limit how long each rule can run
+      maxScanDurationInMins: 10  # Limit the total scan time
+      threadPerHost: 2  # Adjust based on available resources
+
+  - name: "passiveScan-wait"
+    type: "passiveScan-wait"
+    parameters:
+      maxDuration: 5  # Short wait time after scans to finalize processing
+
+  - name: "report"
+    type: "report"
+    parameters:
+      template: "traditional-html"
+      reportTitle: "ZAP Scanning Report"
+
+# In this configuration, I've:
+# Limited the maximum depth and children in the spider scan to reduce the number of pages visited.
+# Reduced the maxAlertsPerRule and maxBodySizeInBytesToScan in the passive scan configuration to speed up the passive scanning process.
+# Set time limits on the active scan (maxRuleDurationInMins and maxScanDurationInMins) to ensure that it doesn't run indefinitely.
+# Used passiveScan-wait with a short maxDuration to quickly conclude the scanning process.
+# Adjust these parameters based on your specific needs and the complexity of the website you are scanning to balance thoroughness and speed.
