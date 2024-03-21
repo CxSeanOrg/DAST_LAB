@@ -1,0 +1,33 @@
+name: DAST Scan Completion Email Notification
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'  # Runs every day at midnight
+
+jobs:
+  dast-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Your DAST scan steps here
+      - name: Run DAST Scan
+        run: echo "Running DAST scan..."
+
+  notify:
+    needs: dast-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send email notification
+        uses: dawidd6/action-send-mail@v2
+        with:
+          server_address: smtp.example.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: DAST Scan Completed
+          body: The DAST scan has completed. Check the results in your dashboard.
+          to: recipient@example.com
+          from: noreply@example.com
