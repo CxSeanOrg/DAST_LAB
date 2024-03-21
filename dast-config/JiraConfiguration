@@ -1,0 +1,45 @@
+name: Checkmarx DAST Scan and Report to JIRA
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight
+
+jobs:
+  dast-scan-and-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+# Run checkmarx DAST scan here
+
+      - name: Retrieve DAST Scan Results
+        id: get_results
+        run: |
+          # Poll for scan completion and retrieve results
+          # This may require additional logic to check scan status before fetching results
+          scan_results=$(curl -X GET "https://us.ast.checkmarx.net/api/dast/mfe-results/results/info/${{ steps.checkmarx_scan.outputs.result_id }}/${{ steps.checkmarx_scan.outputs.scan_id }}" \
+            -H "Authorization: Bearer ${{ secrets.CHECKMARX_API_TOKEN }}")
+          echo "Scan Results: $scan_results"
+          echo "::set-output name=scan_results::$scan_results"
+
+      - name: Create JIRA Ticket
+        run: |
+          curl -X POST "https://your-company.atlassian.net/rest/api/3/issue" \
+            -H "Authorization: Basic ${{ secrets.JIRA_API_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "fields": {
+                 "project": {
+                   "key": "PROJ"
+                 },
+                 "summary": "Checkmarx DAST Scan Results for ${{ steps.checkmarx_scan.outputs.scan_id }}",
+                 "description": "${{ steps.get_results.outputs.scan_results }}",
+                 "issuetype": {
+                   "name": "Bug"
+                 }
+              }
+            }'
